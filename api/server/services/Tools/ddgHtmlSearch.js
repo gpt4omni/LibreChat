@@ -5,7 +5,11 @@
  * Returns shape compatible with @librechat/agents search `getSources` -> { success, data: { organic, topStories, ... } }
  */
 let axios;
-try { axios = require('axios'); } catch {}
+try {
+  axios = require('axios');
+} catch (_e) {
+  /* ignore */
+}
 // Lazy axios — parseHtml works without it (tests)
 
 const ENDPOINT = 'https://html.duckduckgo.com/html/';
@@ -52,7 +56,9 @@ function parseHtml(html, limit = 5) {
   for (let i = 1; i < parts.length && out.length < limit; i++) {
     const block = '<div class="result' + parts[i];
     // title link: <a class="result__a" href="...">Title</a>
-    const tm = block.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+    const tm = block.match(
+      /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i,
+    );
     if (!tm) continue;
     const rawHref = tm[1];
     const rawTitle = tm[2];
@@ -92,11 +98,17 @@ function parseHtml(html, limit = 5) {
  * @param {object} agents - { httpAgent, httpsAgent } for SSRF-safe agents
  */
 function createDdgHtmlAPI(agents) {
-  const getSources = async ({ query, numResults = 5, safeSearch }) => {
+  const getSources = async ({ query, numResults = 5, safeSearch: _safeSearch }) => {
     if (!query || !query.trim()) {
       return { success: false, error: 'Query cannot be empty' };
     }
-    if (!axios) { try { axios = require('axios'); } catch { return { success: false, error: 'axios not available' }; } }
+    if (!axios) {
+      try {
+        axios = require('axios');
+      } catch {
+        return { success: false, error: 'axios not available' };
+      }
+    }
     const n = Math.max(1, Math.min(10, numResults));
     const encoded = encodeURIComponent(query.trim());
     const url = `${ENDPOINT}?q=${encoded}`;
@@ -114,7 +126,13 @@ function createDdgHtmlAPI(agents) {
         // html.duckduckgo.com returns 200 even with no results
         validateStatus: (s) => s >= 200 && s < 400,
       });
-      if (!axios) { try { axios = require('axios'); } catch (e) { return { success: false, error: 'axios not installed' }; } }
+      if (!axios) {
+        try {
+          axios = require('axios');
+        } catch (_e) {
+          return { success: false, error: 'axios not installed' };
+        }
+      }
       const html = res.data;
       const organic = parseHtml(html, n);
       // safeSearch param is ignored by HTML endpoint (it respects its own &kp= param, but keep for compat)

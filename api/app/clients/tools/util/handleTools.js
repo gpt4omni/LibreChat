@@ -422,7 +422,13 @@ const loadTools = async ({
           const { z } = require('zod');
           const schema = z.object({
             query: z.string().min(1).describe('Search query'),
-            max_results: z.number().int().min(1).max(10).optional().describe('Max results, defaults to 5'),
+            max_results: z
+              .number()
+              .int()
+              .min(1)
+              .max(10)
+              .optional()
+              .describe('Max results, defaults to 5'),
           });
           return tool(
             async ({ query, max_results = 5 }, runConfig) => {
@@ -432,11 +438,15 @@ const loadTools = async ({
               if (onSearchResults) {
                 try {
                   onSearchResults({ success: true, data: r.data }, runConfig || {});
-                } catch {}
+                } catch (_e) { /* ignore */ }
               }
               return JSON.stringify(r.data);
             },
-            { name: 'web_search', description: 'Search the web via DuckDuckGo HTML (no API key)', schema },
+            {
+              name: 'web_search',
+              description: 'Search the web via DuckDuckGo HTML (no API key)',
+              schema,
+            },
           );
         }
         return createSearchTool({
